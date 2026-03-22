@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecosistema JSCJ — Mapa de Onboarding</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --accent3: #7c6fff;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --danger: #ff4466;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,255,0,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,0,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* HEADER */
+  header {
+    padding: 60px 0 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .header-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-tag::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .header-sub {
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  .header-sub strong { color: var(--text); }
+
+  /* PHASE TABS */
+  .phase-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .phase-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    text-transform: uppercase;
+  }
+
+  .phase-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  .phase-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* SECTION HEADER */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* PHASE BLOCK */
+  .phase-block { display: none; }
+  .phase-block.active { display: block; }
+
+  /* CONCEPT CARDS */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+  }
+
+  .card:hover {
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  .card.critical { border-left: 3px solid var(--accent); }
+  .card.high { border-left: 3px solid var(--accent2); }
+  .card.support { border-left: 3px solid var(--accent3); }
+
+  .card-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    padding: 2px 8px;
+    text-transform: uppercase;
+  }
+
+  .badge-critical { background: rgba(200,255,0,0.1); color: var(--accent); }
+  .badge-high { background: rgba(255,107,53,0.1); color: var(--accent2); }
+  .badge-support { background: rgba(124,111,255,0.1); color: var(--accent3); }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .card-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .card-links { display: flex; flex-direction: column; gap: 6px; }
+
+  .card-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    text-decoration: none;
+    background: var(--surface2);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;
+  }
+
+  .card-link:hover { background: rgba(200,255,0,0.08); }
+
+  .card-link .link-icon {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .card-link .link-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-link .link-src {
+    font-size: 9px;
+    color: var(--muted);
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* CONCEPT RULE BOX */
+  .rule-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+    margin-bottom: 48px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text);
+  }
+
+  .rule-box .rule-title {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .rule-line { display: flex; gap: 12px; align-items: baseline; }
+  .rule-line span:first-child { color: var(--accent); flex-shrink: 0; }
+  .rule-line span:last-child { color: var(--muted); }
+
+  /* FLOW TABLE */
+  .flow-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 48px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .flow-table th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .flow-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+
+  .flow-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .flow-table .entity-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    background: var(--surface2);
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* ALERT */
+  .alert {
+    background: rgba(255,68,102,0.07);
+    border: 1px solid rgba(255,68,102,0.3);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .alert-title {
+    color: var(--danger);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ENTITIES MAP */
+  .entities-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .entity-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .entity-card:hover { border-color: rgba(255,255,255,0.2); }
+
+  .entity-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .entity-role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .entity-links {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+  }
+
+  /* PROGRESS INDICATOR */
+  .progress-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 48px;
+  }
+
+  .progress-step {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-step.done { background: var(--accent); }
+  .progress-step.current { background: var(--accent2); }
+
+  /* FOOTER NOTE */
+  .footer-note {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .footer-note strong { color: var(--text); }
+
+  /* SEARCH */
+  .search-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    width: 100%;
+    margin-bottom: 32px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-bar::placeholder { color: var(--muted); }
+  .search-bar:focus { border-color: var(--accent); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .entities-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="header-tag">Ecosistema JSCJ — Joan S. Castro J.</div>
+    <h1>Mapa de <span>Onboarding</span><br>& Sucesión Operativa</h1>
+    <p class="header-sub">
+      Este documento existe para que cualquier sucesor — humano o IA — pueda reconstruir el trabajo
+      sin depender de la memoria de Joan ni de dogmas. <strong>Funcionalidad y criterio > dogma.</strong><br>
+      Si un link muere, el concepto vive. Si un concepto muere, la lógica queda. Si la lógica queda, se puede reconstruir.
+    </p>
+  </header>
+
+  <!-- PHASE NAV -->
+  <div class="phase-nav">
+    <button class="phase-btn active" onclick="showPhase('p0')">0 · Antes de todo</button>
+    <button class="phase-btn" onclick="showPhase('p1')">1 · Fundamentos</button>
+    <button class="phase-btn" onclick="showPhase('p2')">2 · Las Entidades</button>
+    <button class="phase-btn" onclick="showPhase('p3')">3 · Motor Comercial</button>
+    <button class="phase-btn" onclick="showPhase('p4')">4 · Capital & Finanzas</button>
+    <button class="phase-btn" onclick="showPhase('p5')">5 · GPTs & Herramientas</button>
+    <button class="phase-btn" onclick="showPhase('p6')">6 · Reglas de Criterio</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-step current" id="ps0"></div>
+    <div class="progress-step" id="ps1"></div>
+    <div class="progress-step" id="ps2"></div>
+    <div class="progress-step" id="ps3"></div>
+    <div class="progress-step" id="ps4"></div>
+    <div class="progress-step" id="ps5"></div>
+    <div class="progress-step" id="ps6"></div>
+  </div>
+
+  <!-- ===== PHASE 0 ===== -->
+  <div class="phase-block active" id="p0">
+
+    <div class="alert">
+      <div class="alert-title">⚠ Leer esto primero — contexto crítico</div>
+      Joan construyó un ecosistema de 7 entidades modulares durante 7 años bajo mentoría de élite.
+      El resultado es un sistema de criterio antifrágil diseñado para sobrevivir a su autor.
+      Tu rol como sucesor NO es reemplazarlo — es ser custodio del criterio, no del ego.
+      La IP está en los PDFs. Los GPTs son el criterio vivo. Los Geminis son el arquitecto de recursos.
+    </div>
+
+    <div class="section-label">Entender el sistema en 5 minutos</div>
+
+    <div class="rule-box">
+      <div class="rule-title">La lógica central del ecosistema</div>
+      <div class="rule-line"><span>→</span><span>Un ecosistema de 7 entidades modulares, cada una con su "ocean blue" (brecha de mercado única).</span></div>
+      <div class="rule-line"><span>→</span><span>Todas las entidades son fractales: pueden operar solas O interconectarse para proyectos grandes.</span></div>
+      <div class="rule-line"><span>→</span><span>El criterio (el "NO" estratégico) vive en Axis. La ejecución vive en Splendor. El capital vive en Vita Boma.</span></div>
+      <div class="rule-line"><span>→</span><span>Renasci y Axis son el motor de adquisición B2B de alto nivel. El resto escala sobre esa base.</span></div>
+      <div class="rule-line"><span>→</span><span>Los GPTs de cada entidad son su "cerebro operativo". Cárgalos antes de ejecutar cualquier decisión.</span></div>
+      <div class="rule-line"><span>→</span><span>La meta: intervenir un Fortune 500 end-to-end → $12–$26M distribuidos en partes iguales entre las 8 entidades vía Axis Ecosystem LLC (Panamá).</span></div>
+    </div>
+
+    <div class="section-label">Links de entrada — Ver estos primero</div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number">
+          <span>01 · ENTRADA OBLIGATORIA</span>
+          <span class="card-badge badge-critical">crítico</span>
+        </div>
+        <div class="card-title">La teoría estructural base del ecosistema</div>
+        <div class="card-desc">El primer link que Joan marcó como "entiendan esto de primeras". Sin esto, todo lo demás es ruido. Explica la lógica que une todo el ecosistema.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/s/t_69af1528a9d081919ed5760dffc10110" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Teoría estructural → interacción con realidades</span>
+            <span class="link-src">GPT</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number">
+          <span>02 · META FÓRMULA</span>
+          <span class="card-badge badge-critical">crítico</span>
+        </div>
+        <div class="card-title">FOK — La meta fórmula detrás de WITT y Full Axis</div>
+        <div class="card-desc">La fórmula que une todas las entidades. Joan lo describió como el marco de referencia de todo el sistema operativo del ecosistema.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/a16983098c79" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">FOK — Meta fórmula WITT + Full Axis</span>
+            <span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/s/t_69aece02e1fc8191bbd52c67e96ae4fe" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Meta criterio y el origen — "para que digan que no puede funcionar"</span>
+            <span class="link-src">GPT</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number">
+          <span>03 · VETO & GOBERNANZA</span>
+          <span class="card-badge badge-critical">crítico</span>
+        </div>
+        <div class="card-title">Matriz de veto y aprendizaje</div>
+        <div class="card-desc">"Sin esto todo vale mondue." Axis queda como partner de criterio. Este es el sistema que impide que el ecosistema tome decisiones que destruyan su razón de ser.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/s/t_69b069f31a048191a21386067a466dde" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Matriz de veto y aprendizaje</span>
+            <span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/100275442628" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Matriz integración hallazgos × gobernanza modular</span>
+            <span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number">
+          <span>04 · CUSTODIOS</span>
+          <span class="card-badge badge-high">importante</span>
+        </div>
+        <div class="card-title">Custodios ideales transicionales</div>
+        <div class="card-desc">Quién debe custodiar qué. La clave es Think Tank + criterio IP (los PDFs). Define la arquitectura de sucesión humana del ecosistema.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/9cee0ac2d395" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Custodios ideales transicionales</span>
+            <span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/28b6953fd1e5" target="_blank">
+            <span class="link-icon">↗</span>
+            <span class="link-label">Partnership del ecosistema completo — gobernanza de interacciones</span>
+            <span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number">
+          <span>05 · INTRO VIDEOS</span>
+          <span class="card-badge badge-high">importante</span>
+        </div>
+        <div class="card-title">Loom Reports — Intro por entidad</div>
+        <div class="card-desc">Videos de introducción de cada entidad. Empezar por "Intro" y "Intro 2", luego ver el de la entidad que más necesites operar primero.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://www.loom.com/share/0f7cb3cc202d4ef6ad12930d03856437" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Intro General</span><span class="link-src">Loom</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/8d62919534e041f69336ef0fc5c172bd" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Intro 2</span><span class="link-src">Loom</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/c70fd2b7e6b945529c24dac081b57f5c" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">El Cierre</span><span class="link-src">Loom</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/eea1e98fb73b4fdab7a34d5902b03d55" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Posdata Negra</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card support">
+        <div class="card-number">
+          <span>06 · PARTNERSHIPS</span>
+          <span class="card-badge badge-support">soporte</span>
+        </div>
+        <div class="card-title">Partnership Axis–Renasci & Ecosistema completo</div>
+        <div class="card-desc">Cómo se interconectan las entidades. Las matrices los llevan al mismo horizonte por caminos distintos sin romper el modelo de criterio.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/ab3d71ba1964" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Partnership Axis–Renasci</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://share.google/aimode/xEbW4Z1KtviE8q8RC" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Partnership Axis–Renasci–Splendor–JJ Company</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 1 ===== -->
+  <div class="phase-block" id="p1">
+
+    <div class="section-label">Conceptos que debes entender antes de ejecutar</div>
+
+    <div class="rule-box">
+      <div class="rule-title">Los 5 conceptos estructurales del ecosistema</div>
+      <div class="rule-line"><span>1.</span><span><strong>Criterio Antifragil:</strong> el sistema se fortalece bajo presión. No busca evitar el caos — lo usa. Fractalis, Axis y WITT son los guardianes de este criterio.</span></div>
+      <div class="rule-line"><span>2.</span><span><strong>Ocean Blue:</strong> cada entidad resuelve una brecha que el mercado ignora. No compiten — cada una tiene su ICP distinto.</span></div>
+      <div class="rule-line"><span>3.</span><span><strong>Modelo Modular / Fractal:</strong> todo son células replicables. Cuando una célula llega a X tamaño, se subdivide en nueva vertical. No escala en lineal — escala en fractal.</span></div>
+      <div class="rule-line"><span>4.</span><span><strong>Capitalismo Consciente:</strong> el dinero es un instrumento, no el fin. El fin es impacto real, criterio preservado, humanidad no quemada. Quien no respete esto no entra al ecosistema.</span></div>
+      <div class="rule-line"><span>5.</span><span><strong>Deuda Técnica / Humana / de Criterio:</strong> las 3 deudas que destruyen un sistema. Antes de cerrar cualquier deal, evaluar si el cliente generará estas deudas.</span></div>
+    </div>
+
+    <div class="section-label">Links conceptuales clave</div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number"><span>F·01</span><span class="card-badge badge-critical">crítico</span></div>
+        <div class="card-title">Todo el ecosistema Axis — visión completa</div>
+        <div class="card-desc">El documento madre que describe cómo se integra todo. Empezar aquí para entender la lógica de interacción entre entidades.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chat.deepseek.com/share/ssisq5s0ynx6rparl9" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Todo el ecosistema Axis</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/ciz16b1wgp4vvwcwcm" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Ontológico al time to market del ecosistema entero</span><span class="link-src">DeepSeek</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number"><span>F·02</span><span class="card-badge badge-critical">crítico</span></div>
+        <div class="card-title">Framework universal base + IA como herramienta</div>
+        <div class="card-desc">La base estructural común a todas las entidades. Importante: la IA es catalizador de ejecución, no reemplazo de criterio.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chat.deepseek.com/share/5d9pi72wqu5n7us24l" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Framework universal base</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/i87wpahhu72kx4p5ye" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">IA como herramienta — no reemplazo de criterio</span><span class="link-src">DeepSeek</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>F·03</span><span class="card-badge badge-high">importante</span></div>
+        <div class="card-title">Perfiles ICP / NCP / NLP — quién entra y quién no</div>
+        <div class="card-desc">El sistema de perfiles positivos y negativos. El poder real está en los perfiles "NO" — NLP, NCP, NPP, NEP. Sin esto, el sistema se rompe.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/5f382110aa74" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Perfiles ICP V1</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/mavvkyvqf5qyrzqklt" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Procesamiento y presentación de casos — negociación para la confianza</span><span class="link-src">DeepSeek</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>F·04</span><span class="card-badge badge-high">importante</span></div>
+        <div class="card-title">Sistemas de respaldo V1 + arquitectura pre-Axis</div>
+        <div class="card-desc">Los sistemas que existían antes de que el ecosistema tomara su forma actual. Útil para entender la evolución del pensamiento.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chat.deepseek.com/share/13cbg1zjeud70jd56s" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Sistemas de respaldo V1</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/jukpturcef9x4o4xjo" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Sistema inicial pre Axis Ecosystem</span><span class="link-src">DeepSeek</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card support">
+        <div class="card-number"><span>F·05</span><span class="card-badge badge-support">contexto</span></div>
+        <div class="card-title">Por qué JJ Company & Renasci — el razonamiento fundacional</div>
+        <div class="card-desc">Explica la razón de ser de las dos entidades de mayor complejidad. Importante leer antes de tomar decisiones sobre ellas.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/32072eade373" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Por qué JJ Company & Renasci</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/3c0bf1fbeb9e" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Caso de respaldo — inyección IP y equity de resultados</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 2 ===== -->
+  <div class="phase-block" id="p2">
+
+    <div class="section-label">Las 7 entidades — qué hace cada una</div>
+
+    <div class="entities-row">
+      <div class="entity-card">
+        <div class="entity-name" style="color: var(--accent)">Splendor</div>
+        <div class="entity-role">Talent as a Service. Conecta talento remoto LATAM con empresas B2B USA/Canadá. El motor de cashflow del ecosistema.</div>
+        <div class="entity-links">GPT → Proceso Splendor</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: var(--accent2)">Renasci</div>
+        <div class="entity-role">Consultoría de arquitectura organizacional para Series A–VC/FO. Retainers $9.5K–$100K. El motor de adquisición premium.</div>
+        <div class="entity-links">GPT → Proceso Renasci</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: var(--accent3)">Axis</div>
+        <div class="entity-role">Clarity Partner y árbitro de criterio del ecosistema. Dice NO cuando todos quieren decir SÍ. Custodio fundacional.</div>
+        <div class="entity-links">GPT → Axis in Clarity Partner</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: #4ecdc4">Vita Boma</div>
+        <div class="entity-role">Trading desk (hedging SPY/opciones) + base de datos JSCJ + modelos replicables para incubadoras. Capital e IP técnica.</div>
+        <div class="entity-links">GPT → Proceso Vita Boma</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: #ffd166">Fractalis</div>
+        <div class="entity-role">Custodio de criterio fundacional para ONGs y organizaciones. Ocean Blue más sencillo y de más impacto. Nace de WITT.</div>
+        <div class="entity-links">GPT → Fractalis</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: #a8dadc">Singularity</div>
+        <div class="entity-role">Negociaciones de élite. Cierra deals imposibles usando IP + criterio de Splendor escalado a partnerships + success fee.</div>
+        <div class="entity-links">GPT → Proceso Singularity</div>
+      </div>
+      <div class="entity-card">
+        <div class="entity-name" style="color: #e9c46a">JJ Company</div>
+        <div class="entity-role">Gobernanza de recursos residuales. Modelos de negocio emergentes: remates, FBA, franquicias, UX, fintech. El laboratorio.</div>
+        <div class="entity-links">GPT → Proceso JJ Company</div>
+      </div>
+    </div>
+
+    <div class="section-label">Links core por entidad</div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number"><span>E·SPLENDOR</span><span class="card-badge badge-critical">cashflow</span></div>
+        <div class="card-title">Splendor — Talent as a Service</div>
+        <div class="card-desc">Modelo financiero: 28% talento, 12% parafiscales, 7% closer, 7% campaign mgr, 4% scalable mgr, 10% adaptaciones estructurales. Primero activar con los primeros contratos firmados.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_b262740e-1af6-40ce-ae46-2a8a3907a6d8" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Landing page Splendor — Ideación</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_a9e9ced3-75ef-4074-9565-0a820777576f" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Pitch deck Splendor</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_f94f99d1-5cd3-49c7-9030-705090dfd416" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Splendor benchmark — verificación de mercado</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/15ff7ac0fd8a4e5e8c6aadc38ff7750d" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Splendor & JJ Company — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number"><span>E·RENASCI</span><span class="card-badge badge-critical">adquisición</span></div>
+        <div class="card-title">Renasci — Arquitectura Organizacional</div>
+        <div class="card-desc">Funnel: SMS CEO → Connect VP/EA → Report video/PDF → Closer interno → Llamada → Upfront. Ciclos de 8–16 sesiones. Flujo a Panama offshore.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_9e4682e1-efa4-4ae7-b20e-fe988aa5d789" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Matriz Renasci organizacional</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/9lk9awdcgavwo2cyad" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Matriz fundamental procesamiento / valor generado</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/istofi6jcfa0ixqg7b" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Precio / valor generado</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/adf668a9fb544bd58d91b152ef51e58b" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Renasci — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number"><span>E·AXIS</span><span class="card-badge badge-critical">criterio</span></div>
+        <div class="card-title">Axis — Clarity Partner & Árbitro</div>
+        <div class="card-desc">El custodio que Joan designó explícitamente. Axis es quien puede decir NO cuando todos en el ecosistema dicen SÍ. No opera para adentro — opera desde afuera del ego.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_b8037904-a11e-4cea-a08f-c5b436c00fa1" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Marco de referencia de Axis situacional</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_7bd2fc05-fa6e-4a47-95fc-062546550fd9" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Loom Axis–Renasci</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/1a62137d3b8b4cd4856a9823c16ef26c" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Axis — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>E·VITA BOMA</span><span class="card-badge badge-high">capital</span></div>
+        <div class="card-title">Vita Boma — Trading + IP Técnica</div>
+        <div class="card-desc">Hedging SPY/opciones con ventana de apertura + operación opuesta + ATR fórmula de imbalance. Trading desk partner + Hugging Face database.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/s/t_69af25381f2c819184d29bbca3176c23" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Hedging SPY Options</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://share.google/aimode/KHQa6qwj3tVvoBn4F" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">El ontológico–pragmático Vita Boma</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/e4a3d3fa921a40f6875a9fdb7ab93c0c" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Vita Boma — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>E·FRACTALIS</span><span class="card-badge badge-high">criterio</span></div>
+        <div class="card-title">Fractalis — Custodio para ONGs</div>
+        <div class="card-desc">"Meta Marco Matriz de Fractalis — Santi te amo. El ocean blue más sencillo y de más impacto porque nace de lo mismo que construyó a WITT."</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/s/t_69b03068ea3881919aecd8a9adab2e68" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Meta Marco Matriz de Fractalis</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/bb3909122b4e4d94951b6ee7e490e49d" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Fractalis — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card support">
+        <div class="card-number"><span>E·SINGULARITY</span><span class="card-badge badge-support">elite</span></div>
+        <div class="card-title">Singularity — Negociaciones de Élite</div>
+        <div class="card-desc">El modelo más modular. Retainer pequeño + success fee + equity. Escala el modelo Splendor en partnerships. Leer "Cisnes Negros para Singularity."</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_dc654ba0-5c75-4eda-a07b-b13f489f70d3" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Singularity case V3</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_bcd76f2f-5b21-42eb-a08c-6ef7f3bbc6b1" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Cisnes Negros para Singularity</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://www.loom.com/share/06d2c65d3e1340318a58816b890db609" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Singularity — Intro Loom</span><span class="link-src">Loom</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 3 ===== -->
+  <div class="phase-block" id="p3">
+
+    <div class="section-label">Motor comercial — adquisición, funnels, closers</div>
+
+    <div class="rule-box">
+      <div class="rule-title">La regla de oro de adquisición</div>
+      <div class="rule-line"><span>→</span><span>Funnel B2B: ICP + INCP + 7 touch points → leads tibios → closer full comisionado (5–7% LTV primeros 2–3 meses).</span></div>
+      <div class="rule-line"><span>→</span><span>Contacto #1 Hook → #2 Case Study (3 pain points) → #3 Self-negociación → #4 Triaje (Book Call / Team / Not interested).</span></div>
+      <div class="rule-line"><span>→</span><span>Scraping LinkedIn + Bitrix24 como CRM → Email sender → Score probabilidad → Tibios → Closers → Pool Talent → Closing.</span></div>
+      <div class="rule-line"><span>→</span><span>Técnicas Chris Voss obligatorias: Never Split the Difference. Buscar el "NO" no el "SÍ". Calibrated questions. Labeling. Mirroring.</span></div>
+      <div class="rule-line"><span>→</span><span>ICP Series A–B para Renasci. Startups tech + ONGs + Universidades para Fractalis. Talent remote para Splendor.</span></div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number"><span>C·01</span><span class="card-badge badge-critical">adquisición</span></div>
+        <div class="card-title">Scraping & contacto — sistema completo</div>
+        <div class="card-desc">23,000 leads scrapeados de LinkedIn. Flujo: Perfil → Sales Nav → Scraper → Personalización → Templates por sub-target → CRM.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chat.deepseek.com/share/dtqm4m3msspvrj3zc1" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Scraping niveles 1 & 2 según profundidad del lead</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/tzm3f63yw9tlbff648" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Scraping framework</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://claude.ai/share/530bb052-5ae0-4faa-a193-7e09bb15abad" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Meta Matriz de contactos</span><span class="link-src">Claude</span>
+          </a>
+          <a class="card-link" href="https://claude.ai/share/6f3f4507-7388-4f14-a9f7-db7658301eeb" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Generador de plantillas para contactos</span><span class="link-src">Claude</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number"><span>C·02</span><span class="card-badge badge-critical">cierre</span></div>
+        <div class="card-title">Funnel de calentamiento B2B — 4 contactos</div>
+        <div class="card-desc">Score 8/10. Probabilidad de conversión a tibios: 30–40%. Personalización total. Cada respuesta activa un trigger diferente.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://claude.ai/share/c64b9e85-3b5e-4784-b8b8-b37fbc2d2a9c" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Top funnel background</span><span class="link-src">Claude</span>
+          </a>
+          <a class="card-link" href="https://claude.ai/share/57287cb0-389f-4abf-9310-fb3cf4a56102" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Tracción de closer</span><span class="link-src">Claude</span>
+          </a>
+          <a class="card-link" href="https://claude.ai/share/acd30bad-6eda-4ef9-899a-2c279e5da484" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Delegando las adquisiciones</span><span class="link-src">Claude</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>C·03</span><span class="card-badge badge-high">leads 4 empresas</span></div>
+        <div class="card-title">Kit de ataque — 4 companies Series A (STUUT, XENIA, AGENTIO, AGTONOMY)</div>
+        <div class="card-desc">Las 4 empresas concretas con contactos. SMS a CEO + mensaje a VP + 3-min Entropy Mirror + Premium Follow-Up "Insight Pivot". Despliegue lunes–viernes.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_bee84862-0a81-4bd9-ab47-c9406cc81754" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Triangulando outsource base de closers</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://claude.ai/share/9accfb68-f501-4198-b202-ce854afc8a82" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Dónde nacieron los primeros pitch</span><span class="link-src">Claude</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>C·04</span><span class="card-badge badge-high">ONGs</span></div>
+        <div class="card-title">ONGs como testing ground — retainer $700/mes</div>
+        <div class="card-desc">Testear mapas operativos con ONGs a $700 USD/mes de retainer pequeño. Te quedan como caso de estudio. Aplica para Fractalis especialmente.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/899c06f17c8c" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Lead generation cost</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/bbee2f35826e" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Conversión de objeciones</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card support">
+        <div class="card-number"><span>C·05</span><span class="card-badge badge-support">herramientas</span></div>
+        <div class="card-title">Stack de herramientas comerciales</div>
+        <div class="card-desc">Bitrix24 (CRM + email, $200/mes → 500 seats). Email sender ($100/mes). Scraping en Fiverr/Upwork ($180/1000 leads fríos). Total: ~$450/mes.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/19ba8ebc4f42" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Herramientas outsourcing costo ajustado</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/39443eb69441" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Delegando closers</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 4 ===== -->
+  <div class="phase-block" id="p4">
+
+    <div class="section-label">Capital, finanzas & estructura legal</div>
+
+    <div class="rule-box">
+      <div class="rule-title">Estructura financiera del ecosistema</div>
+      <div class="rule-line"><span>→</span><span><strong>Holding:</strong> Axis Ecosystem LLC en Panamá. Recibe ingresos de proyectos grandes → distribuye equitativamente a las 8 entidades.</span></div>
+      <div class="rule-line"><span>→</span><span><strong>Flujos offshore:</strong> Renasci fluye a Panamá como whitelabel con trazabilidad + fiduciaria (0.75% anual de AUM).</span></div>
+      <div class="rule-line"><span>→</span><span><strong>Trading (Vita Boma):</strong> LLC en EEUU desde Colombia. Hedging SPY. Triangulación legal.</span></div>
+      <div class="rule-line"><span>→</span><span><strong>Remates JJ Company:</strong> Fideicomiso + Wise para transferencias + triangulación fiscal DIAN.</span></div>
+      <div class="rule-line"><span>→</span><span><strong>Splendor:</strong> 28% talento, 12% parafiscales, 7% closer, 7% campaign mgr, 4% scalable, 4% vertical, 4% tools, 10% adaptaciones, 7% pool leads, 13% reservas.</span></div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number"><span>F·01</span><span class="card-badge badge-critical">estructura</span></div>
+        <div class="card-title">LLC EEUU + impuestos + offshore Colombia</div>
+        <div class="card-desc">Triangulación legal completa. LLC en EEUU desde Colombia → impuestos → flujo a Panamá → distribución. Base del modelo financiero.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/f452fd1d9e19" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">LLC en EEUU desde Colombia</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/56c11c7c595f" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Impuestos LLC en EEUU</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/23f3900e1fc1" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Triangulado San Andrés y Offshore</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/f21ba1b0f037" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Impuestos transados EEUU–Colombia</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>F·02</span><span class="card-badge badge-high">trading</span></div>
+        <div class="card-title">Vita Boma — Hedging SPY + opciones</div>
+        <div class="card-desc">Ventana de apertura + operación opuesta + ATR fórmula imbalance + órdenes de movimiento + cierre por reversión. Es autónomo — no necesita intervención manual diaria.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://gemini.google.com/share/1b68266d3837" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Apalancamiento de CFDs</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_ec4cf419-354b-4c0d-9ece-3afc89bfa951" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Triangulación legal LLC EEUU Trading</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/96569900c46a" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Opciones SPY en análisis institucional</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>F·03</span><span class="card-badge badge-high">remates</span></div>
+        <div class="card-title">JJ Company — Fideicomiso & Remates inmobiliarios</div>
+        <div class="card-desc">Modelo autónomo. Remates en EEUU + Colombia. Transferencias vía Wise. Apalancamiento de remates JJ Company.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://grok.com/share/c2hhcmQtNA_bab56204-015e-4ab4-a232-43da0439a5b5" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Apalancamiento remates JJ Company</span><span class="link-src">Grok</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/04f752da5e74" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Remates inmobiliarios EEUU</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/2ad1331cf6d1" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Transferencia Wise Fideicomiso Remates</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card support">
+        <div class="card-number"><span>F·04</span><span class="card-badge badge-support">seguridad</span></div>
+        <div class="card-title">Seguros de vida + pólizas + CDTs</div>
+        <div class="card-desc">Parte del pos mortem de Joan. Seguros de vida, CDTs, pólizas. Backup financiero personal del ecosistema.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://share.google/aimode/3x6bgsN8yYSYaoQSY" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Póliza de seguro de vida</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://share.google/aimode/pV9Pi1Le9f7mIihJn" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Pos mortem</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://share.google/aimode/Zd4zGuWTkci6QpP4D" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Topes CDT</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://gemini.google.com/share/b8b4b2565fc9" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Costos seguros de vida</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 5 ===== -->
+  <div class="phase-block" id="p5">
+
+    <div class="section-label">GPTs, Geminis y herramientas IA del ecosistema</div>
+
+    <div class="alert">
+      <div class="alert-title">Instrucción de activación</div>
+      Cargar primero el Core de cada entidad en el GPT correspondiente. Luego explorar el resto. No saltar entre entidades sin haber entendido el Core de la que necesitas operar. Los GPTs son el criterio vivo — no son chatbots, son el sistema nervioso del ecosistema.
+    </div>
+
+    <div class="cards-grid">
+      <div class="card critical">
+        <div class="card-number"><span>IA·01</span><span class="card-badge badge-critical">núcleo</span></div>
+        <div class="card-title">GPTs principales — cada entidad tiene el suyo</div>
+        <div class="card-desc">Cada entidad tiene un GPT propio (en ChatGPT) y un proceso asociado. Empezar por JSCJ, luego Axis, luego la entidad que vayas a operar.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/g/g-p-694a12272f3c8191a26ca6b911af4c7c-jscj/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT JSCJ — el núcleo</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-697bf03c81548191b5fabf65103b6b0b-axis/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Axis — Clarity Partner</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-699f50d281d8819181cdd63d0faaa199-conciliere-de-claridad-joan-s-castro-j/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Clarity Advisor JSCJ</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ad606b37ec8191b82773d5bee282c2-todos/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT @Todos — visión completa</span><span class="link-src">GPT</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card critical">
+        <div class="card-number"><span>IA·02</span><span class="card-badge badge-critical">entidades</span></div>
+        <div class="card-title">GPTs por entidad — proceso operativo</div>
+        <div class="card-desc">Cada entidad tiene su GPT de proceso. Usar para decisiones operativas diarias de esa entidad.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ac430eb18481919414158776a43e8e-proceso-splendor/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Proceso Splendor</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ac434c81688191a920dc4641ca11d7-proceso-renasci/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Proceso Renasci</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ac431c2b308191bb73c4bccda54590-proceso-axis/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Proceso Axis</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ac433f923c8191af7376f3490ecd20-proceso-vita-boma/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Proceso Vita Boma</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ac435f97b08191878ae75c4a75389b-proceso-singularity/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Proceso Singularity</span><span class="link-src">GPT</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>IA·03</span><span class="card-badge badge-high">especialistas</span></div>
+        <div class="card-title">GPTs especializados — UX, Mercado, Clustering</div>
+        <div class="card-desc">Para tareas específicas dentro del ecosistema. UX Designer, análisis de mercado, agrupación de notas para síntesis.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ad624734b481919d9fb34c8e078ab4-ux-designer-developer/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT UX Designer & Developer</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ada43d2c5c8191a2cd3cb9319861c9-entendiendo-mercado/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Entendiendo el mercado</span><span class="link-src">GPT</span>
+          </a>
+          <a class="card-link" href="https://chatgpt.com/g/g-p-69ad6197c2488191a6dc737eda444d9a-modelo-de-clustering-notes-a-ia-llm-chat/project" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">GPT Clustering Notes → IA</span><span class="link-src">GPT</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card high">
+        <div class="card-number"><span>IA·04</span><span class="card-badge badge-high">síntesis</span></div>
+        <div class="card-title">Cómo usar Notebook LLM para sintetizar</div>
+        <div class="card-desc">Instrucción de Joan: "carguen por secciones que su cerebro correlacione para que Notebook LLM les ayude a sintetizar." Es el meta-organizador de todo el conocimiento.</div>
+        <div class="card-links">
+          <a class="card-link" href="https://share.google/aimode/LRUo8WuZVEIG4Txp3" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Crear clon mío con IA</span><span class="link-src">Gemini</span>
+          </a>
+          <a class="card-link" href="https://chat.deepseek.com/share/lpgkhl969w7kzbhext" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Categorización para convertir notas en IA revisable</span><span class="link-src">DeepSeek</span>
+          </a>
+          <a class="card-link" href="https://share.google/aimode/XSlmqYaWUbiHKyNEt" target="_blank">
+            <span class="link-icon">↗</span><span class="link-label">Clustering de notas</span><span class="link-src">Gemini</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== PHASE 6 ===== -->
+  <div class="phase-block" id="p6">
+
+    <div class="section-label">Reglas de criterio — el sistema de vetos</div>
+
+    <div class="rule-box">
+      <div class="rule-title">La regla de oro Renasci — válida para TODO el ecosistema</div>
+      <div class="rule-line"><span>01</span><span>Si no está definido, no se negocia.</span></div>
+      <div class="rule-line"><span>02</span><span>Si se negocia, se documenta.</span></div>
+      <div class="rule-line"><span>03</span><span>Si se documenta, se respeta.</span></div>
+      <div class="rule-line"><span>04</span><span>Si no se respeta, se sale.</span></div>
+    </div>
+
+    <div class="rule-box" style="border-left-color: var(--accent2);">
+      <div class="rule-title" style="color: var(--accent2)">Los 4 perfiles "NO" — antifrágiles del sistema</div>
+      <div class="rule-line"><span>NLP</span><span>Non Lead Profile: curiosos crónicos, comparadores infinitos, piden "info" pero evitan decisión. Se filtran antes de gastar energía comercial.</span></div>
+      <div class="rule-line"><span>NCP</span><span>Non Customer Profile: pagan tarde, cambian reglas, confunden soporte con dependencia. Se rechazan incluso si hay dinero.</span></div>
+      <div class="rule-line"><span>NPP</span><span>Non Partnership Profile: desorden financiero, ego sobre acuerdos, ambigüedad contractual, "después vemos". No entran aunque prometan crecimiento rápido.</span></div>
+      <div class="rule-line"><span>NEP</span><span>Non Employee Profile: supervisión constante, victimismo operativo, resistencia a feedback, desalineación ética. No se intenta arreglar. Se evita.</span></div>
+    </div>
+
+    <div class="rule-box" style="border-left-color: var(--accent3);">
+      <div class="rule-title" style="color: var(--accent3)">Regla del sucesor — lo que Joan dejó escrito</div>
+      <div class="rule-line"><span>→</span><span>Axis es el árbitro. Ante cualquier duda estratégica, Axis dice el NO. No el sucesor individual.</span></div>
+      <div class="rule-line"><span>→</span><span>La IP (PDFs) es la constitución. Antes de cambiar algo, verificar si contradice la IP fundacional.</span></div>
+      <div class="rule-line"><span>→</span><span>No centralizar. El ecosistema es modular porque cada entidad debe poder operar sola. Un sucesor que centraliza lo destruye.</span></div>
+      <div class="rule-line"><span>→</span><span>WITT no se desentierra. Fue borrado voluntariamente. El criterio que contenía vive en Axis y Vita Boma.</span></div>
+      <div class="rule-line"><span>→</span><span>Funcionalidad y criterio > dogma. Si algo no funciona en la realidad, se ajusta. El ecosistema no es una religión.</span></div>
+      <div class="rule-line"><span>→</span><span>Cada ~7 años se debe rehacer el macro ciclo. La entropía siempre desgasta. Los ajustes son necesarios.</span></div>
+    </div>
+
+    <div class="section-label">Tabla de decisión rápida</div>
+
+    <table class="flow-table">
+      <thead>
+        <tr>
+          <th>Situación</th>
+          <th>Quién decide</th>
+          <th>Recurso a consultar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nuevo cliente potencial Renasci/Axis</td>
+          <td>GPT Proceso Renasci + Matriz ICP</td>
+          <td>Matriz de veto y aprendizaje (GPT)</td>
+        </tr>
+        <tr>
+          <td>Decisión que rompe criterio fundacional</td>
+          <td>Axis dice NO</td>
+          <td>Marco de referencia Axis situacional (Grok)</td>
+        </tr>
+        <tr>
+          <td>Activar nuevo talento Splendor</td>
+          <td>Solo tras primer contrato firmado</td>
+          <td>GPT Proceso Splendor + modelo financiero</td>
+        </tr>
+        <tr>
+          <td>Deal grande Fortune 500</td>
+          <td>Ecosistema completo vía Axis LLC Panama</td>
+          <td>Partnership completo ecosistema (Gemini)</td>
+        </tr>
+        <tr>
+          <td>Duda sobre si algo es dogma o criterio</td>
+          <td>Testear en realidad primero</td>
+          <td>FOK — meta fórmula WITT + Full Axis (Gemini)</td>
+        </tr>
+        <tr>
+          <td>Operación trading Vita Boma</td>
+          <td>Autónomo — no requiere intervención</td>
+          <td>Hedging SPY Options (GPT)</td>
+        </tr>
+        <tr>
+          <td>Candidato a partner/empleado</td>
+          <td>Cruzar contra los 4 perfiles NO</td>
+          <td>Matriz ICP + NLP/NCP/NPP/NEP</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-note">
+    <strong>Nota para el sucesor:</strong> Este mapa no reemplaza el criterio vivo. Es una puerta de entrada.
+    Si un link muere, busca el concepto en el GPT correspondiente. Si el GPT desaparece, el concepto
+    está en los PDFs. Si los PDFs se pierden, la lógica está en estas páginas. Si esta página se pierde,
+    el criterio es: <em>modularidad + criterio antifragil + capitalismo consciente + funcionalidad > dogma.</em>
+    <br><br>
+    <strong>Joan S. Castro J.</strong> — Ecosistema construido 2018–2026 bajo mentoría de élite.
+    Custodios designados: Axis + Vita Boma. Legado intelectual: Los PDFs + Los GPTs.
+  </div>
+
+</div>
+
+<script>
+  let currentPhase = 0;
+
+  function showPhase(phaseId) {
+    // Hide all phases
+    document.querySelectorAll('.phase-block').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.phase-btn').forEach(el => el.classList.remove('active'));
+
+    // Show target phase
+    document.getElementById(phaseId).classList.add('active');
+    event.target.classList.add('active');
+
+    // Update progress
+    const phases = ['p0','p1','p2','p3','p4','p5','p6'];
+    const idx = phases.indexOf(phaseId);
+    phases.forEach((p, i) => {
+      const step = document.getElementById('ps' + i);
+      if (step) {
+        step.classList.remove('done','current');
+        if (i < idx) step.classList.add('done');
+        else if (i === idx) step.classList.add('current');
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
