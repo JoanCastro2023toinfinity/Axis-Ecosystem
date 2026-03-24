@@ -4,8 +4,8 @@ Axis Ecosystem: A Distributed Knowledge Architecture for Conscious Institutional
 
 
 AVISO DE LICENCIA Y PROPIEDAD INTELECTUAL
-Autor: [Tu Nombre Completo / Organización]
-Fecha de Registro (DNDA): [Pendiente / Fecha de envío]
+Autor: JOAN SEBASTIAN CASTRO JIMENEZ (REPRESENTATNTE OFICIAL).
+Fecha de Registro (DNDA): 24 DE MARZO DE 2026
 Estado de la Obra: Protegida por el Régimen de Derecho de Autor de la República de Colombia y Tratados Internacionales (Convenio de Berna).
 Esta obra se distribuye bajo una licencia Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional (CC BY-NC-SA 4.0).
 Uso Autorizado: Se concede autorización universal, perpetua y gratuita para el estudio, implementación operativa y aplicación práctica de este modelo/tecnología en cualquier entorno de negocio o investigación.
