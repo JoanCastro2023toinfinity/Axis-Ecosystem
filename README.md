@@ -51,3 +51,9 @@ Castro J. (Level 2 Founder).
 
 This deposit establishes provenance and timestamp of authorship for all 
 frameworks, protocols, and institutional designs contained herein.
+<p>
+</p>
+
+<p></p>
+
+Main files to re built the ecosystem: https://drive.google.com/drive/folders/1k4JQJ1L6Ge_BGXWBuzXiiZgGlf4F6OPX
