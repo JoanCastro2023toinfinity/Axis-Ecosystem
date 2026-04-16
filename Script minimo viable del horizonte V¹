@@ -1,0 +1,514 @@
+# -*- coding: utf-8 -*-
+"""Extracción de 11 categorías desde archivos locales (sin LLMs)
+   Para usar en Google Colab con la carpeta "Chats LLMs" en Mi Unidad.
+"""
+
+# ============================
+# 1. Montar Google Drive e instalar dependencias
+# ============================
+from google.colab import drive
+drive.mount('/content/drive')
+
+!apt-get install -y poppler-utils tesseract-ocr > /dev/null
+!pip install PyPDF2 pdfplumber beautifulsoup4 pandas numpy matplotlib seaborn networkx wordcloud scikit-learn spacy > /dev/null
+!python -m spacy download es_core_news_sm > /dev/null
+
+import os
+import re
+import glob
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import defaultdict
+from wordcloud import WordCloud
+import spacy
+from sklearn.feature_extraction.text import CountVectorizer
+
+nlp = spacy.load("es_core_news_sm")
+
+# ============================
+# 2. Configuración de rutas
+# ============================
+BASE_DIR = "/content/drive/MyDrive/Chats LLMs"   # <--- CAMBIA SI ES NECESARIO
+if not os.path.exists(BASE_DIR):
+    raise FileNotFoundError(f"No se encontró la carpeta: {BASE_DIR}")
+
+print(f"📁 Procesando archivos en: {BASE_DIR}")
+
+# ============================
+# 3. Funciones de extracción de texto según extensión
+# ============================
+def extract_text(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
+    text = ""
+    try:
+        if ext == '.pdf':
+            import pdfplumber
+            with pdfplumber.open(filepath) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text
+        elif ext in ['.html', '.htm']:
+            from bs4 import BeautifulSoup
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                soup = BeautifulSoup(f, 'html.parser')
+                text = soup.get_text()
+        elif ext == '.txt':
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+        elif ext == '.md':
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+        else:
+            # Intentar leer como texto plano
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+    except Exception as e:
+        # print(f"⚠️ Error leyendo {filepath}: {e}")
+        pass
+    return text
+
+# ============================
+# 4. Segmentación en bloques significativos
+# ============================
+def segment_blocks(text, min_len=80):
+    """Divide por dobles saltos de línea y descarta bloques muy cortos."""
+    blocks = re.split(r'\n\s*\n', text)
+    return [b.strip() for b in blocks if len(b.strip()) >= min_len]
+
+# ============================
+# 5. Diccionario de palabras clave por categoría
+# ============================
+KEYWORDS = {
+    "ontologico": [
+        "ontológico", "ontologica", "fractal", "energía", "flujo de energía",
+        "emergencia", "sentido", "libertad", "consciencia", "conciencia",
+        "no sistematizable", "diferencia", "evolución", "ser", "esencia"
+    ],
+    "modelo_negocio": [
+        "retainer", "success fee", "equity", "talent as a service", "whitelabel",
+        "honorario", "bono", "comisión", "upsell", "hedge", "fideicomiso",
+        "trading desk", "retenedor", "retenedor mensual"
+    ],
+    "ip_matrices": [
+        "matriz", "framework", "meta marco", "algoritmo", "patrón invariante",
+        "plantilla", "protocolo", "custodio de criterio", "propiedad intelectual",
+        "IP", "meta matriz", "clustering"
+    ],
+    "adquisiciones": [
+        "funnel", "lead", "prospecto", "ICP", "INCP", "closer", "campaña",
+        "conversión", "ratio de cierre", "lead magnet", "SMS al CEO",
+        "cold call", "adquisición de leads", "lead generation"
+    ],
+    "operaciones": [
+        "OKR", "KPI", "SOW", "statement of work", "ciclo de sesiones",
+        "dashboard", "herramienta", "Brevo", "HubSpot", "campaign manager",
+        "scalable manager", "talent pool", "flujo de tareas", "SILGO",
+        "nómina", "operaciones"
+    ],
+    "legal_financiero": [
+        "LLC", "SAS", "offshore", "Panamá", "impuestos", "Dian", "parafiscales",
+        "seguro", "fiduciaria", "AUM", "retenedor mensual", "success fee",
+        "equity", "Wise", "NDA", "contrato", "facturación", "trazabilidad"
+    ],
+    "traccion_low_cost": [
+        "scrapping", "Sales Navigator free", "extensión", "email marketing gratuito",
+        "leads orgánicos", "referidos", "costo por lead bajo", "freemium",
+        "sin presupuesto", "herramientas freemium", "low cost"
+    ],
+    "escalamiento": [
+        "escalar", "modular", "células", "vertical", "holding", "replicar",
+        "franquicia", "white label", "partnership", "pool de talento",
+        "manager de vertical", "5 células"
+    ],
+    "crecimiento": [
+        "crecimiento", "expansión", "nuevo mercado", "Londres", "Nueva York",
+        "Colombia", "apalancamiento", "ROI", "revalorización", "time to market",
+        "burnt evitado", "crecimiento"
+    ],
+    "digital_branding": [
+        "UX", "UI", "landing page", "logo", "brand design", "dominio",
+        "email corporativo", "copy", "pitch deck", "case study", "Loom",
+        "marca", "branding", "video"
+    ],
+    "excedentes": [
+        "excedente", "no relacionado", "random", "exploratorio", "side project",
+        "descartado", "aprendizaje no alineado", "fuera del core"
+    ]
+}
+
+# ============================
+# 6. Función de clasificación de un bloque
+# ============================
+def classify_block(block):
+    block_lower = block.lower()
+    categories = []
+    for cat, words in KEYWORDS.items():
+        if any(w in block_lower for w in words):
+            categories.append(cat)
+    # Si no coincide con ninguna, se asigna a "excedentes"
+    if not categories:
+        categories = ["excedentes"]
+    return categories
+
+# ============================
+# 7. Extracción de entidades específicas por categoría
+# ============================
+def extract_entities(block, category):
+    entities = {}
+    if category == "legal_financiero":
+        # Montos USD
+        usd = re.findall(r'USD?\s*[\$]?\s*([\d,]+(?:\.\d+)?)', block, re.I)
+        # Porcentajes
+        pct = re.findall(r'(\d+(?:\.\d+)?)\s*%', block)
+        # Estructuras legales
+        legal = re.findall(r'\b(LLC|SAS|S\.A\.|S\.R\.L\.|Offshore|Fiduciaria|Fideicomiso)\b', block, re.I)
+        entities = {
+            "usd_mounts": usd,
+            "percentages": pct,
+            "legal_structures": list(set(legal))
+        }
+    elif category == "operaciones":
+        # Herramientas conocidas
+        tools = re.findall(r'\b(Brevo|HubSpot|Silgo|Slack|Asana|Trello|Zapier|Sales Navigator|Gemini|ChatGPT|DeepSeek|Claude)\b', block, re.I)
+        entities["tools"] = list(set(tools))
+        # KPIs / OKRs (palabras seguidas de número)
+        kpis = re.findall(r'\b(KPI|OKR|ratio|tasa|conversión)\s*:?\s*(\d+(?:\.\d+)?%?)', block, re.I)
+        entities["kpi_examples"] = kpis[:5]
+    elif category == "adquisiciones":
+        ratios = re.findall(r'(\d+(?:\.\d+)?)\s*%?\s*(?:cierre|conversión|close)', block, re.I)
+        entities["close_ratios"] = ratios
+    return entities
+
+# ============================
+# 8. Procesamiento principal: recorrer archivos
+# ============================
+all_files = glob.glob(os.path.join(BASE_DIR, "**", "*.*"), recursive=True)
+print(f"📄 Archivos encontrados: {len(all_files)}")
+
+results = []  # cada elemento: (archivo, categoria, fragmento, entidades)
+
+for idx, filepath in enumerate(all_files):
+    if idx % 50 == 0:
+        print(f"Procesando {idx+1}/{len(all_files)}...")
+    fname = os.path.basename(filepath)
+    text = extract_text(filepath)
+    if not text.strip():
+        continue
+    blocks = segment_blocks(text)
+    for block in blocks:
+        cats = classify_block(block)
+        for cat in cats:
+            ent = extract_entities(block, cat) if cat in ["legal_financiero", "operaciones", "adquisiciones"] else {}
+            results.append({
+                "archivo": fname,
+                "ruta_completa": filepath,
+                "categoria": cat,
+                "fragmento": block[:600],   # preview
+                "entidades": ent
+            })
+
+print(f"✅ Bloques clasificados: {len(results)}")
+
+# ============================
+# 9. Crear DataFrame y guardar resultados
+# ============================
+df = pd.DataFrame(results)
+output_csv = "/content/drive/MyDrive/resultados_categorias.csv"
+df.to_csv(output_csv, index=False, encoding='utf-8-sig')
+print(f"💾 Resultados guardados en: {output_csv}")
+
+# ============================
+# 10. Visualizaciones
+# ============================
+# 10.1 Mapa de calor: categorías por archivo (top 20 archivos)
+cat_by_file = df.groupby(['archivo', 'categoria']).size().unstack(fill_value=0)
+if len(cat_by_file) > 20:
+    cat_by_file = cat_by_file.head(20)
+plt.figure(figsize=(14, 8))
+sns.heatmap(cat_by_file, cmap='Blues', annot=True, fmt='d', cbar=False)
+plt.title("Presencia de categorías por archivo (top 20)")
+plt.tight_layout()
+plt.savefig("/content/drive/MyDrive/heatmap_categorias.png")
+plt.show()
+
+# 10.2 Nube de palabras para ontológico
+onto_text = " ".join(df[df.categoria=='ontologico']['fragmento'].dropna())
+if onto_text:
+    wc = WordCloud(width=800, height=400, background_color='white', max_words=100).generate(onto_text)
+    plt.figure(figsize=(10, 6))
+    plt.imshow(wc, interpolation='bilinear')
+    plt.axis('off')
+    plt.title("Nube de palabras - Ontológico")
+    plt.savefig("/content/drive/MyDrive/wordcloud_ontologico.png")
+    plt.show()
+else:
+    print("No se encontraron fragmentos ontológicos para la nube de palabras.")
+
+# 10.3 Distribución de categorías (gráfico de barras)
+cat_counts = df['categoria'].value_counts()
+plt.figure(figsize=(10, 5))
+sns.barplot(x=cat_counts.values, y=cat_counts.index, palette='viridis')
+plt.xlabel("Número de fragmentos")
+plt.title("Distribución de categorías extraídas")
+plt.tight_layout()
+plt.savefig("/content/drive/MyDrive/distribucion_categorias.png")
+plt.show()
+
+# 10.4 Extraer y mostrar montos financieros (top 10)
+fin_rows = df[df['categoria']=='legal_financiero']
+montos = []
+for _, row in fin_rows.iterrows():
+    ent = row['entidades']
+    if isinstance(ent, dict) and 'usd_mounts' in ent:
+        for m in ent['usd_mounts']:
+            montos.append({'archivo': row['archivo'], 'monto_usd': m, 'fragmento': row['fragmento'][:150]})
+if montos:
+    df_montos = pd.DataFrame(montos).head(10)
+    print("\n💰 Ejemplos de montos USD encontrados:")
+    print(df_montos.to_string(index=False))
+else:
+    print("\n⚠️ No se encontraron montos USD explícitos.")
+
+# 10.5 Herramientas operativas más mencionadas
+tools_list = []
+for _, row in df[df['categoria']=='operaciones'].iterrows():
+    ent = row['entidades']
+    if isinstance(ent, dict) and 'tools' in ent:
+        tools_list.extend(ent['tools'])
+if tools_list:
+    from collections import Counter
+    tool_counts = Counter(tools_list)
+    print("\n🛠️ Herramientas operativas detectadas:")
+    for tool, count in tool_counts.most_common(10):
+        print(f"   {tool}: {count}")
+else:
+    print("\n⚠️ No se detectaron herramientas específicas.")
+
+# ============================
+# 11. Resumen final por vertical (detección básica)
+# ============================
+vertical_keywords = {
+    "Splendor": ["splendor", "talent as a service", "pool talent", "closer"],
+    "Renasci": ["renasci", "ceo", "vp", "sms al ceo", "upfront"],
+    "Axis": ["axis", "clarity advisor", "criterio", "axis ecosystem"],
+    "Vita Boma": ["vita boma", "hedging", "trading", "spy options"],
+    "Fractalis": ["fractalis", "fractal", "ong", "capitalismo consciente"],
+    "JJ Company": ["jj company", "remates", "fideicomiso", "jj co"],
+    "Singularity": ["singularity", "negociaciones de elite", "cisnes negros"],
+    "Shaddai": ["shaddai", "franquicia"],
+    "WITT": ["witt"]
+}
+
+def detect_vertical_from_text(text_chunk):
+    text_lower = text_chunk.lower()
+    for vert, keys in vertical_keywords.items():
+        if any(k in text_lower for k in keys):
+            return vert
+    return "Otro"
+
+# Asignar vertical a cada archivo (usando el primer fragmento o el nombre)
+df['vertical'] = df['archivo'].apply(lambda x: detect_vertical_from_text(x))
+# Refinar con el contenido de fragmentos (opcional)
+for idx, row in df.iterrows():
+    if row['vertical'] == "Otro":
+        vert = detect_vertical_from_text(row['fragmento'])
+        df.at[idx, 'vertical'] = vert
+
+# Tabla resumen: conteo de categorías por vertical
+summary = df.groupby(['vertical', 'categoria']).size().unstack(fill_value=0)
+summary.to_csv("/content/drive/MyDrive/resumen_por_vertical.csv")
+print("\n📊 Resumen por vertical guardado en resumen_por_vertical.csv")
+print(summary.head(10))
+
+print("\n🎉 Proceso completado. Revisa los archivos generados en tu Drive.")
+
+
+Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount("/content/drive", force_remount=True).
+📁 Procesando archivos en: /content/drive/MyDrive/Chats LLMs
+📄 Archivos encontrados: 1879
+Procesando 1/1879...
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Procesando 51/1879...
+Procesando 101/1879...
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Procesando 151/1879...
+Procesando 201/1879...
+Procesando 251/1879...
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+WARNING:pdfminer.pdffont:Could not get FontBBox from font descriptor because None cannot be parsed as 4 float
